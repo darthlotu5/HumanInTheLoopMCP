@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HumanInTheLoop.Mcp/HumanInTheLoop.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/telegram/HumanInTheLoop.Mcp.Sample.Telegram.csproj" />
+  </Folder>
+</Solution>

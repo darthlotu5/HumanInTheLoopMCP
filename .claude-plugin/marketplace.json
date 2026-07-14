@@ -1,0 +1,16 @@
+{
+  "name": "humanintheloop",
+  "owner": {
+    "name": "darthlotu5",
+    "url": "https://github.com/darthlotu5"
+  },
+  "plugins": [
+    {
+      "name": "afk",
+      "source": "./",
+      "description": "Route AI-agent approvals, confirmations, and questions to a human on Telegram via the HumanInTheLoop MCP.",
+      "version": "1.0.0"
+    }
+  ]
+}
+
