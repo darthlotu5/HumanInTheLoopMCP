@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Teaches AI agents when to call ask_user() and adds /afk start|stop to route approvals to a human on Telegram via the HumanInTheLoop MCP.",
   "author": {
-    "name": "darthlotu5",
+    "name": "Pius Dan",
     "url": "https://github.com/darthlotu5"
   },
   "license": "MIT",

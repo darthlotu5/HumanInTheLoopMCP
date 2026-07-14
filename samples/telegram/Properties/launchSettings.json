@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "HumanInTheLoop.Mcp.Sample.Telegram": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:56743;http://localhost:56744"
+    }
+  }
+}

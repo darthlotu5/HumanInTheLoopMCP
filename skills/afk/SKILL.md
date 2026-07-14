@@ -4,7 +4,7 @@ description: Toggle "away from keyboard" mode so Copilot routes every approval, 
 argument-hint: "start | stop"
 license: MIT
 metadata:
-  author: pinyonge
+  author: Pius Dan
   version: "2.0.0"
 ---
 
