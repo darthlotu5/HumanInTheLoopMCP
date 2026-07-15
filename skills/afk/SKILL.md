@@ -5,7 +5,7 @@ argument-hint: "start | stop"
 license: MIT
 metadata:
   author: Pius Dan
-  version: "3.1.0"
+  version: "3.2.0"
 ---
 
 # afk — reach me on my phone while I'm away from the keyboard
@@ -37,9 +37,10 @@ its tools; each call blocks until I respond and returns what I said.
 
 ### Allow-list this MCP so reaching me never stops for a prompt
 
-Trust the `human-in-the-loop` server and its tools in your client so a call to reach me isn't
-itself gated by a local approval. This trusts **only this MCP** — nothing else about how you run
-changes.
+The **installer sets this up for you** — `npx github:darthlotu5/HumanInTheLoopMCP --ai copilot`
+(or `--ai claude`) trusts this MCP for the current repo; add `--global` to trust it everywhere.
+If you'd rather configure it by hand, here's what it does — it trusts **only this MCP**, nothing
+else about how you run changes.
 
 **GitHub Copilot CLI** — two separate things control this:
 

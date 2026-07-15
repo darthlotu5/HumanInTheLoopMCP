@@ -34,13 +34,14 @@ The skill teaches your agent *when* to interrupt you instead of guessing.
 
 ```bash
 # GitHub Copilot CLI
-npx github:darthlotu5/HumanInTheLoopMCP#npx-skill-installer --ai copilot
+# GitHub Copilot CLI — trust this MCP for the current repo (add --global for everywhere)
+npx github:darthlotu5/HumanInTheLoopMCP --ai copilot
 
 # Claude Code
-npx github:darthlotu5/HumanInTheLoopMCP#npx-skill-installer --ai claude
+npx github:darthlotu5/HumanInTheLoopMCP --ai claude
 ```
 
-Restart your AI client. Type `/afk` when you step away to route questions to your phone, and `/afk stop` to bring them back to the terminal.
+Restart your AI client. Type `/afk` when you step away to route questions to your phone, and `/afk stop` to bring them back to the terminal. The installer also allow-lists the MCP so `ask_user` runs without a permission prompt.
 
 ### 2. Create an account
 

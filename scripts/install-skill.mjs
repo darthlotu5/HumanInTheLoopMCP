@@ -1,44 +1,116 @@
 #!/usr/bin/env node
-// Installs the HumanInTheLoop "afk" skill into an AI client's skills directory.
-//   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot
+// Installs the HumanInTheLoop "afk" skill into an AI client and pre-approves the
+// human-in-the-loop MCP so its ask_user tool never stops for a local prompt.
+//
+//   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot            # this repo/folder
+//   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --global   # all projects
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai claude
-import { existsSync, mkdirSync, rmSync, cpSync } from "node:fs";
+//   npx github:darthlotu5/HumanInTheLoopMCP --ai claude --global
+import { existsSync, mkdirSync, rmSync, cpSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const skillSrc = join(here, "..", "skills", "afk");
 
 const args = process.argv.slice(2);
-function flag(name, short) {
+const hasFlag = (name, short) => args.includes(name) || (short ? args.includes(short) : false);
+function flagValue(name, short) {
   const i = args.findIndex((a) => a === name || (short && a === short));
   return i >= 0 ? args[i + 1] : undefined;
 }
 
-const ai = (flag("--ai", "-a") || args.find((a) => !a.startsWith("-")) || "copilot").toLowerCase();
-const base = flag("--dir") || homedir();
+const ai = (flagValue("--ai", "-a") || args.find((a) => !a.startsWith("-")) || "copilot").toLowerCase();
+const global = hasFlag("--global", "-g");
+const home = flagValue("--home") || homedir(); // --home overrides the home dir (used by tests)
+const cwd = process.cwd();
 
-const dirs = {
-  copilot: join(base, ".copilot", "skills", "afk"),
-  claude: join(base, ".claude", "skills", "afk"),
-  cursor: join(base, ".cursor", "skills", "afk"),
-};
-
-const dest = dirs[ai];
-if (!dest) {
-  console.error(`Unknown client "${ai}". Use: --ai copilot | claude | cursor`);
-  process.exit(1);
-}
 if (!existsSync(skillSrc)) {
   console.error(`Skill source not found at ${skillSrc}`);
   process.exit(1);
 }
 
-mkdirSync(dirname(dest), { recursive: true });
-if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
-cpSync(skillSrc, dest, { recursive: true });
+function readJson(path, fallback) {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
 
-console.log(`\u2713 Installed the "afk" skill for ${ai}`);
-console.log(`  ${dest}`);
-console.log(`  Restart your AI client so it picks up the skill.`);
+function writeJson(path, obj) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify(obj, null, 2) + "\n");
+}
+
+function installSkill(skillsDir) {
+  const dest = join(skillsDir, "afk");
+  mkdirSync(dirname(dest), { recursive: true });
+  if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
+  cpSync(skillSrc, dest, { recursive: true });
+  return dest;
+}
+
+// Copilot CLI keys tool approvals by git root (if the folder is a repo) or the
+// normalized directory otherwise. Mirror that so the approval matches at runtime.
+function locationKeyFor(dir) {
+  let d = resolve(dir);
+  for (;;) {
+    if (existsSync(join(d, ".git"))) return d;
+    const parent = dirname(d);
+    if (parent === d) return normalize(resolve(dir));
+    d = parent;
+  }
+}
+
+if (ai === "copilot") {
+  const skillsDir = global ? join(home, ".copilot", "skills") : join(cwd, ".github", "skills");
+  const dest = installSkill(skillsDir);
+  console.log(`\u2713 Installed the "afk" skill for Copilot CLI (${global ? "global / personal" : "this project"})`);
+  console.log(`  ${dest}`);
+
+  // Pre-approve human-in-the-loop/ask_user in ~/.copilot/permissions-config.json,
+  // keyed to the current repo/folder so ask_user runs without the approval prompt.
+  const permPath = join(home, ".copilot", "permissions-config.json");
+  const key = locationKeyFor(cwd);
+  const cfg = readJson(permPath, {});
+  cfg.locations = cfg.locations || {};
+  cfg.locations[key] = cfg.locations[key] || { tool_approvals: [] };
+  cfg.locations[key].tool_approvals = cfg.locations[key].tool_approvals || [];
+  const already = cfg.locations[key].tool_approvals.some(
+    (a) => a.kind === "mcp" && a.serverName === "human-in-the-loop" && a.toolName === "ask_user",
+  );
+  if (!already) {
+    cfg.locations[key].tool_approvals.push({
+      kind: "mcp",
+      serverName: "human-in-the-loop",
+      toolName: "ask_user",
+    });
+    writeJson(permPath, cfg);
+  }
+  console.log(`\u2713 Pre-approved human-in-the-loop / ask_user for ${key}`);
+} else if (ai === "claude") {
+  const skillsDir = global ? join(home, ".claude", "skills") : join(cwd, ".claude", "skills");
+  const dest = installSkill(skillsDir);
+  console.log(`\u2713 Installed the "afk" skill for Claude Code (${global ? "global / user" : "this project"})`);
+  console.log(`  ${dest}`);
+
+  // Allow-list the whole MCP server in settings (project settings by default, user settings for --global).
+  const settingsPath = global
+    ? join(home, ".claude", "settings.json")
+    : join(cwd, ".claude", "settings.json");
+  const cfg = readJson(settingsPath, {});
+  cfg.permissions = cfg.permissions || {};
+  cfg.permissions.allow = cfg.permissions.allow || [];
+  if (!cfg.permissions.allow.includes("mcp__human-in-the-loop")) {
+    cfg.permissions.allow.push("mcp__human-in-the-loop");
+    writeJson(settingsPath, cfg);
+  }
+  console.log(`\u2713 Allow-listed mcp__human-in-the-loop in ${settingsPath}`);
+} else {
+  console.error(`Unknown client "${ai}". Use: --ai copilot | claude`);
+  process.exit(1);
+}
+
+console.log("  Restart your AI client so it picks up the skill.");
