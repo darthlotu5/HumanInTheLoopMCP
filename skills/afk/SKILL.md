@@ -5,7 +5,7 @@ argument-hint: "start | stop"
 license: MIT
 metadata:
   author: Pius Dan
-  version: "3.0.0"
+  version: "3.2.0"
 ---
 
 # afk — reach me on my phone while I'm away from the keyboard
@@ -18,9 +18,14 @@ when you need something: my phone instead of the terminal.
 ### `/afk` or `/afk start`  →  I've stepped away from the keyboard
 I'm no longer at the terminal, so a terminal prompt will just sit there — I won't see it.
 Until I run `/afk stop`: if you need anything from me — a question, a clarification, a choice, a
-confirmation, a decision, or an approval — reach me by calling the **`ask_user`** tool on the
-**`human-in-the-loop`** MCP server (described below). It delivers the message to my phone and
-returns my reply, so you can carry on.
+confirmation, a decision, or **permission/approval to do something** — reach me by calling the
+**`ask_user`** tool on the **`human-in-the-loop`** MCP server (described below). It delivers the
+message to my phone and returns my reply, so you can carry on.
+
+That includes permission: whenever you'd otherwise stop and ask me to approve an action (running a
+command, editing or deleting files, deploying, pushing, spending), ask for that approval **through
+the loop** with `ask_user` — e.g. `choices: ["Approve", "Reject"]` — rather than waiting on a local
+terminal prompt I can't see. Proceed only if I approve.
 
 ### `/afk stop`  →  I'm back
 I'm back at the keyboard. Ask me directly in the terminal again; no need to route through the MCP.
@@ -30,31 +35,51 @@ I'm back at the keyboard. Ask me directly in the terminal again; no need to rout
 A remote MCP server that relays messages between you and me while I'm away. You reach me by calling
 its tools; each call blocks until I respond and returns what I said.
 
-### Allow-list this MCP so the channel stays open
+### Allow-list this MCP so reaching me never stops for a prompt
 
-So that reaching me isn't itself blocked by a local prompt, allow-list the `human-in-the-loop`
-server and all of its tools in your client. This trusts **only this MCP** — it doesn't change
-anything else about how you run.
+The **installer sets this up for you** — `npx github:darthlotu5/HumanInTheLoopMCP --ai copilot`
+(or `--ai claude`) trusts this MCP for the current repo; add `--global` to trust it everywhere.
+If you'd rather configure it by hand, here's what it does — it trusts **only this MCP**, nothing
+else about how you run changes.
 
-- **GitHub Copilot CLI** — in `~/.copilot/mcp-config.json`, give the server entry `"tools": ["*"]`:
-  ```json
-  {
-    "mcpServers": {
-      "human-in-the-loop": {
-        "type": "http",
-        "url": "https://humanintheloop-mcp.azurewebsites.net/mcp",
-        "headers": { "Authorization": "Bearer YOUR_TOKEN" },
-        "tools": ["*"]
-      }
-    }
-  }
-  ```
-- **Claude Code** — in `.claude/settings.json` (project) or `~/.claude/settings.json` (global), add
-  the server to `permissions.allow`. The server name with no tool suffix trusts every tool it
-  exposes:
-  ```json
-  { "permissions": { "allow": ["mcp__human-in-the-loop"] } }
-  ```
+**GitHub Copilot CLI** — two separate things control this:
+
+1. *Enable* the tools — in `~/.copilot/mcp-config.json`, put `"tools": ["*"]` on the server entry:
+   ```json
+   {
+     "mcpServers": {
+       "human-in-the-loop": {
+         "type": "http",
+         "url": "https://humanintheloop-mcp.azurewebsites.net/mcp",
+         "headers": { "Authorization": "Bearer YOUR_TOKEN" },
+         "tools": ["*"]
+       }
+     }
+   }
+   ```
+2. *Pre-approve* the tool so it runs without the "Do you want to use this tool?" prompt.
+   `tools: ["*"]` only *enables* the tool — approval is tracked separately, **per directory**, in
+   `~/.copilot/permissions-config.json`. Either choose **"Yes, and don't ask again for tool
+   'ask_user' from 'human-in-the-loop' in this directory"** once, or add the approval yourself under
+   the directory you work from (a parent directory covers everything beneath it). Restart Copilot
+   CLI after editing so it reloads:
+   ```json
+   {
+     "locations": {
+       "C:\\Users\\me": {
+         "tool_approvals": [
+           { "kind": "mcp", "serverName": "human-in-the-loop", "toolName": "ask_user" }
+         ]
+       }
+     }
+   }
+   ```
+
+**Claude Code** — in `.claude/settings.json` (project) or `~/.claude/settings.json` (global), add the
+server to `permissions.allow`; the name with no tool suffix trusts every tool it exposes:
+```json
+{ "permissions": { "allow": ["mcp__human-in-the-loop"] } }
+```
 
 ### Tool: `ask_user`
 
