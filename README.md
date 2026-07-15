@@ -6,6 +6,8 @@ HumanInTheLoop MCP is a remote MCP server that allows AI agents to pause, ask yo
 
 Instead of sitting in front of your terminal waiting for the next prompt, you can leave your agent running while you work, sleep, commute, or grab lunch. When the agent reaches a decision it cannot safely make, you'll receive a message on your phone and the agent will resume once you respond.
 
+> 🔗 **Open source & self-hosted** — run your own server from GitHub: **[github.com/darthlotu5/HumanInTheLoopMCP](https://github.com/darthlotu5/HumanInTheLoopMCP)**
+
 ---
 
 ## Why?
@@ -87,6 +89,17 @@ skills/
 ---
 
 # Quick Start
+
+## 0. Get the self-hosted server
+
+Clone the open-source server from GitHub:
+
+```bash
+git clone https://github.com/darthlotu5/HumanInTheLoopMCP.git
+cd HumanInTheLoopMCP
+```
+
+---
 
 ## 1. Create a Telegram Bot
 
@@ -257,21 +270,27 @@ Possible channels include:
 
 The included **AFK** skill teaches AI agents when they should ask for clarification instead of making assumptions, and adds `/afk start` and `/afk stop` to route everything to your channel while you're away from the keyboard.
 
-Install:
+Install it into your AI client with a single command — no clone required:
 
 ```bash
-./install-skill.sh --ai copilot
+# GitHub Copilot CLI
+npx github:darthlotu5/HumanInTheLoopMCP --ai copilot
+
+# Claude Code
+npx github:darthlotu5/HumanInTheLoopMCP --ai claude
 ```
 
-or
+This copies the skill into your client's skills directory (`~/.copilot/skills/afk` or `~/.claude/skills/afk`).
+
+Prefer a script? From a clone of this repo:
 
 ```bash
-./install-skill.sh --ai claude
+./install-skill.sh --ai copilot   # or --ai claude
 ```
 
-or install manually by copying `skills/afk` into your AI client's skills directory.
+Or copy `skills/afk` into your AI client's skills directory manually.
 
-After installation, restart your AI client.
+After installation, **restart your AI client**.
 
 ---
 

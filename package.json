@@ -1,0 +1,22 @@
+{
+  "name": "humanintheloop-mcp",
+  "version": "2.0.0",
+  "description": "Install the HumanInTheLoop AFK skill into your AI client (Copilot CLI or Claude Code).",
+  "type": "module",
+  "bin": {
+    "humanintheloop-mcp": "scripts/install-skill.mjs"
+  },
+  "files": [
+    "scripts",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "author": "Pius Dan",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/darthlotu5/HumanInTheLoopMCP.git"
+  }
+}
