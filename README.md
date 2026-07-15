@@ -191,32 +191,42 @@ Then point your MCP client at `https://YOUR_SERVER/mcp` with `Authorization: Bea
 
 ## Architecture
 
-```
-src/
-└── HumanInTheLoop.Mcp
-    ├── Abstractions/      IHumanChannel, IRecipientResolver, shared models
-    ├── HumanTools.cs      the ask_user tool
-    └── ...                token authentication + MCP server wiring
+```mermaid
+flowchart TD
+    subgraph mcp["src/ · HumanInTheLoop.Mcp — one project"]
+        ABS["Abstractions/<br/>IHumanChannel · IRecipientResolver · models"]
+        TOOL["HumanTools.cs<br/>the ask_user tool"]
+        WIRE["MCP server + token authentication wiring"]
+    end
+    subgraph samples["samples/"]
+        TELE["telegram<br/>Telegram IHumanChannel implementation"]
+    end
+    subgraph skills["skills/"]
+        AFK["afk<br/>AI skill for Copilot / Claude Code"]
+    end
 
-samples/
-└── telegram              Telegram IHumanChannel implementation
-
-skills/
-└── afk                   AI skill for Copilot / Claude Code
+    WIRE --> TOOL
+    TOOL -->|resolves the recipient via| ABS
+    TELE -. implements IHumanChannel .-> ABS
+    AFK -. tells the agent to call .-> TOOL
 ```
 
 How a question flows:
 
-```text
-Agent works ──▶ needs a decision ──▶ ask_user
-                                        │
-                                        ▼
-                              📱 Telegram message
-                                        │
-                                   you reply
-                                        │
-                                        ▼
-                              agent continues automatically
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Agent as AI agent
+    participant MCP as HumanInTheLoop MCP
+    participant You as You (Telegram)
+
+    Agent->>Agent: Work autonomously
+    Note over Agent: Needs a decision
+    Agent->>MCP: ask_user(question, choices?)
+    MCP->>You: 📱 Telegram message
+    You-->>MCP: Your reply
+    MCP-->>Agent: Answer
+    Agent->>Agent: Continue automatically
 ```
 
 The abstractions live in an `Abstractions/` folder **inside** the MCP project (namespace `HumanInTheLoop.Mcp.Abstractions`) — one project, no extra ceremony.
