@@ -1,71 +1,179 @@
 # HumanInTheLoop MCP
 
-> **Stop babysitting AI agents. Let them work in the background and only interrupt you when they need a human decision.**
+> **Let AI agents work while you're away — they only message you when they need you.**
 
-HumanInTheLoop MCP is a remote MCP server that allows AI agents to pause, ask you a question, wait for your response, and continue automatically.
+Run your AI coding agent for hours. When it hits a decision it can't safely make on its own — *deploy to prod? delete these files? which branch?* — it asks you on **Telegram**, waits for your reply, and continues automatically.
 
-Instead of sitting in front of your terminal waiting for the next prompt, you can leave your agent running while you work, sleep, commute, or grab lunch. When the agent reaches a decision it cannot safely make, you'll receive a message on your phone and the agent will resume once you respond.
+No more sitting in front of your terminal waiting for the next prompt.
+
+**Works with GitHub Copilot, Claude Code, Cursor, and any MCP-compatible agent.**
 
 ---
 
-## Why?
+## The problem
 
-AI coding agents are becoming capable of completing long-running tasks, but they still get stuck when they need clarification.
-
-Examples:
+AI agents are great at execution. They're terrible at assumptions.
 
 * Should I deploy to production?
 * Which implementation should I choose?
 * Is it safe to delete these files?
 * Which branch should I target?
-* Should I refactor this code?
+* Should I refactor this?
 
-Normally the agent stops and waits for you.
-
-With HumanInTheLoop MCP, it asks you wherever you are.
+Normally the agent stops and waits. With HumanInTheLoop it asks you wherever you are — and resumes the moment you answer.
 
 ---
 
-## How it works
+# Get started in 2 minutes
 
-```text
-You start an AI task
-        │
-        ▼
-Agent works for 20 minutes
-        │
-        ▼
-Needs clarification
-        │
-        ▼
-📱 Telegram
+The fastest path uses the **hosted** version — nothing to deploy, no bot to run.
 
-"Should I deploy to Production?"
+### 1. Install the AFK skill
 
-        │
-     You reply
-        │
-        ▼
-Agent continues automatically
+The skill teaches your agent *when* to interrupt you instead of guessing.
+
+```bash
+# GitHub Copilot CLI
+npx github:darthlotu5/HumanInTheLoopMCP#npx-skill-installer --ai copilot
+
+# Claude Code
+npx github:darthlotu5/HumanInTheLoopMCP#npx-skill-installer --ai claude
 ```
 
+Restart your AI client. Type `/afk` when you step away to route questions to your phone, and `/afk stop` to bring them back to the terminal.
+
+### 2. Create an account
+
+Sign in at **[humanintheloop-mcp.azurewebsites.net](https://humanintheloop-mcp.azurewebsites.net)**.
+
+### 3. Connect Telegram
+
+In the dashboard:
+
+```
+✔ Message the bot
+✔ Paste the 6-digit code
+✔ Connected
+```
+
+### 4. Copy your MCP configuration
+
+The dashboard mints a token and hands you a ready-to-paste config.
+
+**Copilot CLI** — add to `~/.copilot/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "human-in-the-loop": {
+      "type": "http",
+      "url": "https://humanintheloop-mcp.azurewebsites.net/mcp",
+      "headers": { "Authorization": "Bearer YOUR_TOKEN" }
+    }
+  }
+}
+```
+
+**Claude Code** — run:
+
+```bash
+claude mcp add --transport http human-in-the-loop \
+  https://humanintheloop-mcp.azurewebsites.net/mcp \
+  --header "Authorization: Bearer YOUR_TOKEN"
+```
+
+Restart your client.
+
+**Done.** Kick off a long task, walk away, and answer on Telegram when your agent needs you. Watch requests and replies stream live in your dashboard.
+
 ---
 
-## Features
+## Works with
 
-* ✅ Works with any MCP-compatible AI agent
-* ✅ Simple `ask_user(...)` tool
-* ✅ Telegram support out of the box
-* ✅ Streamable HTTP / SSE
-* ✅ Token authentication
-* ✅ Self-hosted
-* ✅ No database required for single-user deployments
-* ✅ Extensible channel abstraction (`IHumanChannel`)
-* ✅ Includes the AFK Skill for autonomous agents
+* GitHub Copilot
+* Claude Code
+* Cursor
+* Any MCP client supporting Streamable HTTP
 
 ---
 
-## Repository Layout
+## The `ask_user` tool
+
+Your agent calls one tool:
+
+```text
+ask_user(
+    question,
+    choices?,
+    allowFreeform?,
+    repository?,
+    branch?,
+    conversation?,
+    context?
+)
+```
+
+You get a message like this on Telegram:
+
+```
+Should I deploy to Production?
+
+[ Deploy ]
+
+[ Cancel ]
+```
+
+Tap a choice (or type a reply) and the AI continues automatically.
+
+---
+
+## Self-hosting
+
+Want complete control? Run your own server and Telegram bot instead of using the hosted platform.
+
+### 1. Clone
+
+```bash
+git clone https://github.com/darthlotu5/HumanInTheLoopMCP.git
+cd HumanInTheLoopMCP
+```
+
+### 2. Create a Telegram bot
+
+Create a bot with **@BotFather** and copy the bot token.
+
+### 3. Configure
+
+```bash
+cp samples/telegram/appsettings-example.json samples/telegram/appsettings.json
+```
+
+| Setting          | Description                |
+| ---------------- | -------------------------- |
+| AccessToken      | Secret used by MCP clients |
+| TelegramBotToken | Bot token from BotFather   |
+| DefaultRecipient | Your Telegram chat id      |
+
+To find your chat id, message your bot, open `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`, and copy `result[].message.chat.id`.
+
+### 4. Run
+
+```bash
+cd samples/telegram
+dotnet run
+```
+
+Your MCP endpoint is available at `http://localhost:5000/mcp`.
+
+### 5. Deploy
+
+Deploy anywhere that runs .NET 10 — Azure App Service, Azure Container Apps, Docker, a Linux VM. No WebSockets required.
+
+Then point your MCP client at `https://YOUR_SERVER/mcp` with `Authorization: Bearer <your AccessToken>`.
+
+---
+
+## Architecture
 
 ```
 src/
@@ -81,141 +189,27 @@ skills/
 └── afk                   AI skill for Copilot / Claude Code
 ```
 
-> The abstractions live in an `Abstractions/` folder **inside** the MCP project (namespace
-> `HumanInTheLoop.Mcp.Abstractions`) — one project, no extra ceremony.
-
----
-
-# Quick Start
-
-## 1. Create a Telegram Bot
-
-Create a bot using **@BotFather** and copy the bot token.
-
----
-
-## 2. Configure
-
-```bash
-cp samples/telegram/appsettings-example.json samples/telegram/appsettings.json
-```
-
-Configure:
-
-| Setting          | Description                |
-| ---------------- | -------------------------- |
-| AccessToken      | Secret used by MCP clients |
-| TelegramBotToken | Bot token from BotFather   |
-| DefaultRecipient | Your Telegram chat id      |
-
-To find your chat id:
-
-1. Send a message to your bot.
-2. Visit:
-
-```
-https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
-```
-
-3. Copy:
-
-```
-result[].message.chat.id
-```
-
----
-
-## 3. Run
-
-```bash
-cd samples/telegram
-
-dotnet run
-```
-
-Your MCP endpoint will be available at
-
-```
-http://localhost:5000/mcp
-```
-
----
-
-## 4. Deploy
-
-Deploy anywhere that supports .NET 10.
-
-Examples:
-
-* Azure App Service
-* Azure Container Apps
-* Docker
-* Linux VM
-
-No WebSockets are required.
-
----
-
-# Connect Your AI Agent
-
-Configure your MCP client to use your server.
-
-```json
-{
-  "mcpServers": {
-    "human-in-the-loop": {
-      "type": "http",
-      "url": "https://YOUR_SERVER/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_ACCESS_TOKEN"
-      }
-    }
-  }
-}
-```
-
-Compatible with:
-
-* GitHub Copilot
-* Claude Code
-* Cursor
-* Any MCP client supporting Streamable HTTP
-
----
-
-# The ask_user Tool
+How a question flows:
 
 ```text
-ask_user(
-    question,
-    choices?,
-    allowFreeform?,
-    repository?,
-    branch?,
-    conversation?,
-    context?
-)
+Agent works ──▶ needs a decision ──▶ ask_user
+                                        │
+                                        ▼
+                              📱 Telegram message
+                                        │
+                                   you reply
+                                        │
+                                        ▼
+                              agent continues automatically
 ```
 
-Example:
-
-```
-Should I deploy to Production?
-
-[ Deploy ]
-
-[ Cancel ]
-```
-
-Once you answer, the AI continues automatically.
+The abstractions live in an `Abstractions/` folder **inside** the MCP project (namespace `HumanInTheLoop.Mcp.Abstractions`) — one project, no extra ceremony.
 
 ---
 
-# Bring Your Own Channel
+## Bring your own channel
 
-Telegram is only the default implementation.
-
-Create your own channel by implementing:
+Telegram is only the default. Implement `IHumanChannel` to deliver questions anywhere:
 
 ```csharp
 public sealed class MyChannel : IHumanChannel
@@ -227,8 +221,7 @@ public sealed class MyChannel : IHumanChannel
         HumanQuestion question,
         CancellationToken cancellationToken)
     {
-        // Deliver the question
-        // Wait for the response
+        // Deliver the question, wait for the response.
     }
 }
 ```
@@ -237,45 +230,28 @@ Register it:
 
 ```csharp
 builder.Services.AddHumanInTheLoopMcp(builder.Configuration);
-
 builder.Services.AddSingleton<IHumanChannel, MyChannel>();
 ```
 
-Possible channels include:
-
-* Slack
-* Microsoft Teams
-* Discord
-* Email
-* SMS
-* Push notifications
-* Web dashboard
+Possible channels: Slack, Microsoft Teams, Discord, email, SMS, push notifications, a web dashboard.
 
 ---
 
-# Install the AFK Skill
+## Features
 
-The included **AFK** skill teaches AI agents when they should ask for clarification instead of making assumptions, and adds `/afk start` and `/afk stop` to route everything to your channel while you're away from the keyboard.
-
-Install:
-
-```bash
-./install-skill.sh --ai copilot
-```
-
-or
-
-```bash
-./install-skill.sh --ai claude
-```
-
-or install manually by copying `skills/afk` into your AI client's skills directory.
-
-After installation, restart your AI client.
+* ✅ Works with any MCP-compatible AI agent
+* ✅ Simple `ask_user(...)` tool
+* ✅ Telegram support out of the box
+* ✅ Streamable HTTP / SSE
+* ✅ Token authentication
+* ✅ Hosted **or** self-hosted
+* ✅ No database required for single-user deployments
+* ✅ Extensible channel abstraction (`IHumanChannel`)
+* ✅ Includes the AFK skill for autonomous agents
 
 ---
 
-# Security
+## Security
 
 * Keep your access token secret.
 * Never commit `appsettings.json`.
@@ -284,21 +260,17 @@ After installation, restart your AI client.
 
 ---
 
-# Roadmap
-
-Planned features:
+## Roadmap
 
 * Microsoft Teams
 * Slack
 * Discord
-* Hosted HumanInTheLoop Cloud
-* Multi-user support
-* Organization management
+* Multi-user organizations
 * Approval workflows
 * Audit history
 
 ---
 
-# License
+## License
 
 MIT
