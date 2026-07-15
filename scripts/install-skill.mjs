@@ -4,6 +4,7 @@
 //
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot            # this repo/folder
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --global   # all projects
+//   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --afk      # also pre-approve file writes
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai claude
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai claude --global
 import { existsSync, mkdirSync, rmSync, cpSync, readFileSync, writeFileSync } from "node:fs";
@@ -23,6 +24,7 @@ function flagValue(name, short) {
 
 const ai = (flagValue("--ai", "-a") || args.find((a) => !a.startsWith("-")) || "copilot").toLowerCase();
 const global = hasFlag("--global", "-g");
+const afk = hasFlag("--afk"); // also pre-approve file writes so AFK work never blocks on a local prompt
 const home = flagValue("--home") || homedir(); // --home overrides the home dir (used by tests)
 const cwd = process.cwd();
 
@@ -90,6 +92,17 @@ if (ai === "copilot") {
     writeJson(permPath, cfg);
   }
   console.log(`\u2713 Pre-approved human-in-the-loop / ask_user for ${key}`);
+
+  // --afk: the human-in-the-loop MCP can't intercept the CLI's own permission gates for built-in
+  // tools, so file writes would still pop a local prompt and block an AFK session. Pre-approve them.
+  if (afk) {
+    if (!cfg.locations[key].tool_approvals.some((a) => a.kind === "write")) {
+      cfg.locations[key].tool_approvals.push({ kind: "write" });
+      writeJson(permPath, cfg);
+      console.log(`\u2713 --afk: pre-approved file writes (create/edit) for ${key}`);
+    }
+    console.log("  For shell-command autonomy too, launch: copilot --allow-all-tools");
+  }
 } else if (ai === "claude") {
   const skillsDir = global ? join(home, ".claude", "skills") : join(cwd, ".claude", "skills");
   const dest = installSkill(skillsDir);
@@ -103,11 +116,19 @@ if (ai === "copilot") {
   const cfg = readJson(settingsPath, {});
   cfg.permissions = cfg.permissions || {};
   cfg.permissions.allow = cfg.permissions.allow || [];
+  let changed = false;
   if (!cfg.permissions.allow.includes("mcp__human-in-the-loop")) {
     cfg.permissions.allow.push("mcp__human-in-the-loop");
-    writeJson(settingsPath, cfg);
+    changed = true;
   }
+  // --afk: let the agent edit files without a local prompt (the MCP can't intercept those gates).
+  if (afk && cfg.permissions.defaultMode !== "acceptEdits" && cfg.permissions.defaultMode !== "bypassPermissions") {
+    cfg.permissions.defaultMode = "acceptEdits";
+    changed = true;
+  }
+  if (changed) writeJson(settingsPath, cfg);
   console.log(`\u2713 Allow-listed mcp__human-in-the-loop in ${settingsPath}`);
+  if (afk) console.log('  --afk: set permissions.defaultMode = "acceptEdits" (edits won\'t prompt)');
 } else {
   console.error(`Unknown client "${ai}". Use: --ai copilot | claude`);
   process.exit(1);
