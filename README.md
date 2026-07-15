@@ -33,15 +33,30 @@ The fastest path uses the **hosted** version — nothing to deploy, no bot to ru
 The skill teaches your agent *when* to interrupt you instead of guessing.
 
 ```bash
-# GitHub Copilot CLI
-# GitHub Copilot CLI — trust this MCP for the current repo (add --global for everywhere)
+# GitHub Copilot CLI — trust this MCP for the current repo
 npx github:darthlotu5/HumanInTheLoopMCP --ai copilot
 
-# Claude Code
+# ...for every project, not just this one
+npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --global
+
+# ...fully hands-free: also pre-approve file writes so AFK never blocks
+npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --afk
+
+# Claude Code (same flags: --global, --afk)
 npx github:darthlotu5/HumanInTheLoopMCP --ai claude
 ```
 
-Restart your AI client. Type `/afk` when you step away to route questions to your phone, and `/afk stop` to bring them back to the terminal. The installer also allow-lists the MCP so `ask_user` runs without a permission prompt.
+Restart your AI client. Type `/afk` when you step away to route questions to your phone, and `/afk stop` to bring them back to the terminal.
+
+The installer also allow-lists the MCP so `ask_user` runs without a permission prompt. Flags:
+
+| Flag | Effect |
+| ---- | ------ |
+| _(none)_ | Install for the current repo/folder. |
+| `--global` | Install for every project (personal skills dir). |
+| `--afk` | Also pre-approve file writes so hands-free edits never stop on a local prompt. For shell commands too, launch `copilot --allow-all-tools`. |
+
+> **Why `--afk`?** The MCP can only relay questions the agent chooses to send — it can't intercept Copilot CLI's own permission prompts for built-in tools like `create`/`edit`. `--afk` pre-approves those for the folder so an away-from-keyboard session doesn't silently block.
 
 ### 2. Create an account
 
