@@ -1,50 +1,85 @@
 ---
 name: afk
-description: Toggle "away from keyboard" mode so Copilot routes every approval, confirmation, sign-off, decision, or clarifying question to me on Telegram via the human-in-the-loop MCP server instead of the local terminal prompt. Invoke `/afk` or `/afk start` when stepping away and `/afk stop` when back. Also use automatically for any approval before an irreversible or destructive action (deploys, git pushes, deletes, spending).
+description: Tells the agent I've stepped away from my keyboard. It should not block on the terminal waiting for me — I won't see it. If it needs anything from me (a question, clarification, choice, confirmation, decision, or approval) it should reach me through the human-in-the-loop MCP server's ask_user tool, which delivers the message to my phone and returns my reply so it can continue. This skill describes that MCP server and the tools it exposes and how to call them. Invoke `/afk` or `/afk start` when I step away and `/afk stop` when I'm back.
 argument-hint: "start | stop"
 license: MIT
 metadata:
   author: Pius Dan
-  version: "2.0.0"
+  version: "3.0.0"
 ---
 
-# afk — route questions to Telegram while I'm away from the keyboard
+# afk — reach me on my phone while I'm away from the keyboard
 
-Use this to switch WHERE Copilot asks me things: my phone (Telegram) vs. the terminal.
+This skill doesn't change how you work or what you decide. It only changes **how you reach me**
+when you need something: my phone instead of the terminal.
 
 ## Modes
 
-### `/afk` or `/afk start`  →  I'M AWAY FROM THE KEYBOARD
-I am now away from the terminal. For the rest of this session (until I run `/afk stop`):
-- Send EVERY question, approval, confirmation, sign-off, choice, or decision to me by calling
-  the **`ask_user` tool on the `human-in-the-loop` MCP server** (it reaches my phone on Telegram).
-- NEVER use the built-in `ask_user` terminal prompt — I won't see it.
-- Keep working autonomously between questions; only stop to ask when you genuinely need my input,
-  and always before any irreversible or destructive action (production deploys, `git push`,
-  deleting files/resources, spending money).
-- Acknowledge in the terminal that AFK mode is ON.
+### `/afk` or `/afk start`  →  I've stepped away from the keyboard
+I'm no longer at the terminal, so a terminal prompt will just sit there — I won't see it.
+Until I run `/afk stop`: if you need anything from me — a question, a clarification, a choice, a
+confirmation, a decision, or an approval — reach me by calling the **`ask_user`** tool on the
+**`human-in-the-loop`** MCP server (described below). It delivers the message to my phone and
+returns my reply, so you can carry on.
 
-### `/afk stop`  →  I'M BACK
-Resume using the normal built-in prompt for questions and stop routing to Telegram. Acknowledge in
-the terminal that AFK mode is OFF.
+### `/afk stop`  →  I'm back
+I'm back at the keyboard. Ask me directly in the terminal again; no need to route through the MCP.
 
-## How to ask while I'm away
+## The `human-in-the-loop` MCP server
 
-Call the `human-in-the-loop` `ask_user` tool with rich context so the message is easy to answer at
-a glance:
-- `question`: the actual question or approval.
-- `choices`: the options as an array. For a yes/no approval use `["✅ Approve", "❌ Reject"]`; if I
-  gave options after a `|`, use exactly those; omit for an open-ended question.
-- `allowFreeform`: `true`.
-- `repository`: current repo name — from `git remote get-url origin` (basename) or the folder name.
-- `branch`: current branch — from `git branch --show-current`.
-- `conversation`: this session's title (a short description of what we're working on).
-- `context`: one extra line of why you're asking / what happens next, when useful.
+A remote MCP server that relays messages between you and me while I'm away. You reach me by calling
+its tools; each call blocks until I respond and returns what I said.
 
-Then act on my reply: Approve/yes → proceed; Reject/no → stop and tell me what you were about to
-do; free-form → follow my instruction. Report my decision back in the terminal.
+### Allow-list this MCP so the channel stays open
 
-## Rules
-- While I'm away, ALL of my input goes through Telegram — never the terminal.
-- Never take an irreversible or destructive action without approval obtained this way.
-- If the `human-in-the-loop` server is genuinely unavailable, say so and fall back to the terminal.
+So that reaching me isn't itself blocked by a local prompt, allow-list the `human-in-the-loop`
+server and all of its tools in your client. This trusts **only this MCP** — it doesn't change
+anything else about how you run.
+
+- **GitHub Copilot CLI** — in `~/.copilot/mcp-config.json`, give the server entry `"tools": ["*"]`:
+  ```json
+  {
+    "mcpServers": {
+      "human-in-the-loop": {
+        "type": "http",
+        "url": "https://humanintheloop-mcp.azurewebsites.net/mcp",
+        "headers": { "Authorization": "Bearer YOUR_TOKEN" },
+        "tools": ["*"]
+      }
+    }
+  }
+  ```
+- **Claude Code** — in `.claude/settings.json` (project) or `~/.claude/settings.json` (global), add
+  the server to `permissions.allow`. The server name with no tool suffix trusts every tool it
+  exposes:
+  ```json
+  { "permissions": { "allow": ["mcp__human-in-the-loop"] } }
+  ```
+
+### Tool: `ask_user`
+
+Ask me something and wait for my answer. The server sends the message to my phone (Telegram), waits
+for my reply, and returns it to you — the choice I tapped, or the text I typed.
+
+**Parameters**
+
+| Parameter       | Type       | Required | Description |
+| --------------- | ---------- | -------- | ----------- |
+| `question`      | string     | yes      | The question or request to put to me. |
+| `choices`       | string[]   | no       | Options for me to pick from (I tap one). Omit for a free-form answer. |
+| `allowFreeform` | boolean    | no       | Whether I may type my own answer instead of picking a choice. Defaults to `true`. |
+| `repository`    | string     | no       | Repo name for context, e.g. `Voxra.API` (from `git remote get-url origin` basename, or the folder). |
+| `branch`        | string     | no       | Current git branch, e.g. `feature/billing` (from `git branch --show-current`). |
+| `conversation`  | string     | no       | Short title of what we're working on in this session. |
+| `context`       | string     | no       | One extra line about why you're asking or what happens next. |
+
+**Returns:** my answer as a string — the choice I selected, or the free-form text I typed. (If I
+don't reply before the server's timeout, it returns a message saying so.)
+
+**Calling it well**
+
+- Put the actual ask in `question`. For a decision between options, pass `choices` (e.g.
+  `["Deploy", "Cancel"]`); for an open question, omit `choices`.
+- Fill `repository`, `branch`, `conversation`, and `context` when you can — they make the message
+  easy for me to answer at a glance on my phone.
+- Then act on what I return, and carry on.
