@@ -67,6 +67,16 @@ Agent continues automatically
 
 ---
 
+# Hosted version
+
+Don't want to run your own server, Telegram bot, or tokens? Use the hosted platform — no deployment required:
+
+👉 **[humanintheloop-mcp.azurewebsites.net](https://humanintheloop-mcp.azurewebsites.net)**
+
+Sign in, connect Telegram, and copy your ready-to-use MCP endpoint and token straight into your AI client. Prefer to run it yourself? Keep reading for the self-hosted [Quick Start](#quick-start).
+
+---
+
 ## Repository Layout
 
 ```
