@@ -8,6 +8,9 @@ obj/
 **/appsettings.json
 **/appsettings.*.json
 
+# Node (npx skill installer)
+node_modules/
+
 # OS / editor
 .DS_Store
 Thumbs.db

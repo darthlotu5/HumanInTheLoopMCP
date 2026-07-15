@@ -8,7 +8,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace HumanInTheLoop.Mcp.Sample.Telegram;
+namespace HumanInTheLoop.TelegramMCPSample;
 
 /// <summary>
 /// Sample <see cref="IHumanChannel"/> that delivers questions to a Telegram chat and reads the
