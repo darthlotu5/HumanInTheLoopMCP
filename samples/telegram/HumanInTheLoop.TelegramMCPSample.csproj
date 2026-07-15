@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>HumanInTheLoop.Mcp.Sample.Telegram</RootNamespace>
+    <RootNamespace>HumanInTheLoop.TelegramMCPSample</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

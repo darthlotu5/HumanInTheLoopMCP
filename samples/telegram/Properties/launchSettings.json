@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "HumanInTheLoop.Mcp.Sample.Telegram": {
+    "HumanInTheLoop.TelegramMCPSample": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

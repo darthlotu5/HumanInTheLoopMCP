@@ -3,6 +3,6 @@
     <Project Path="src/HumanInTheLoop.Mcp/HumanInTheLoop.Mcp.csproj" />
   </Folder>
   <Folder Name="/samples/">
-    <Project Path="samples/telegram/HumanInTheLoop.Mcp.Sample.Telegram.csproj" />
+    <Project Path="samples/telegram/HumanInTheLoop.TelegramMCPSample.csproj" />
   </Folder>
 </Solution>

@@ -1,6 +1,6 @@
 using HumanInTheLoop.Mcp;
 using HumanInTheLoop.Mcp.Abstractions;
-using HumanInTheLoop.Mcp.Sample.Telegram;
+using HumanInTheLoop.TelegramMCPSample;
 
 var builder = WebApplication.CreateBuilder(args);
 
