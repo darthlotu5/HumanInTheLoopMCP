@@ -5,7 +5,7 @@ argument-hint: "start | stop"
 license: MIT
 metadata:
   author: Pius Dan
-  version: "3.2.0"
+  version: "3.3.0"
 ---
 
 # afk — reach me on my phone while I'm away from the keyboard
@@ -22,10 +22,17 @@ confirmation, a decision, or **permission/approval to do something** — reach m
 **`ask_user`** tool on the **`human-in-the-loop`** MCP server (described below). It delivers the
 message to my phone and returns my reply, so you can carry on.
 
-That includes permission: whenever you'd otherwise stop and ask me to approve an action (running a
-command, editing or deleting files, deploying, pushing, spending), ask for that approval **through
-the loop** with `ask_user` — e.g. `choices: ["Approve", "Reject"]` — rather than waiting on a local
-terminal prompt I can't see. Proceed only if I approve.
+That includes judgment calls you'd normally stop on — *should I deploy? delete this? force-push?*
+Ask those through the loop with `ask_user` (e.g. `choices: ["Approve", "Reject"]`) and proceed only
+if I approve.
+
+**But note what the loop cannot do:** it only relays questions you *choose* to send it. It has **no
+hook into Copilot CLI's own permission gates.** When you call a built-in tool (create/edit a file,
+run a shell command), the harness may pop its *own* local "Do you want to use this tool?" prompt
+**before** control returns to you — `ask_user` can't see or reroute that, so while I'm away it just
+sits there and blocks. Don't rely on per-action routing to save you. Instead make sure the tools
+you'll need are **pre-approved for this directory before you go AFK** (see *Don't get stranded by a
+local prompt* below).
 
 ### `/afk stop`  →  I'm back
 I'm back at the keyboard. Ask me directly in the terminal again; no need to route through the MCP.
@@ -80,6 +87,43 @@ server to `permissions.allow`; the name with no tool suffix trusts every tool it
 ```json
 { "permissions": { "allow": ["mcp__human-in-the-loop"] } }
 ```
+
+### Don't get stranded by a local prompt (the real AFK fix)
+
+`ask_user` relays only the questions I *send* it — it has **no hook** into Copilot CLI's own
+permission gates. So a `create`, `edit`, or shell command can trip a local "Do you want to use this
+tool?" prompt that the MCP can't intercept, and while I'm away it blocks silently. The fix is to
+**pre-approve the mutating tools for the working directory** (or run fully autonomous) *before*
+going AFK — not to route them per-action.
+
+**GitHub Copilot CLI** — any of:
+- Run the installer with `--afk`, which pre-approves file writes for this repo:
+  `npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --afk`
+- Launch autonomously (also covers shell commands): `copilot --allow-all-tools`, or run `/allow-all`
+  in-session.
+- Add approvals by hand to `~/.copilot/permissions-config.json` under your working dir's location —
+  `{ "kind": "write" }` for file create/edit, and `{ "kind": "commands", "commandIdentifiers": [...] }`
+  for the commands you'll run (restart Copilot CLI after editing):
+  ```json
+  {
+    "locations": {
+      "C:\\Users\\me\\project": {
+        "tool_approvals": [
+          { "kind": "mcp", "serverName": "human-in-the-loop", "toolName": "ask_user" },
+          { "kind": "write" },
+          { "kind": "commands", "commandIdentifiers": ["git", "npm", "dotnet"] }
+        ]
+      }
+    }
+  }
+  ```
+
+**Claude Code** — set an autonomous mode in `.claude/settings.json` (project) or
+`~/.claude/settings.json` (global); `--afk` on the installer does this for you:
+```json
+{ "permissions": { "defaultMode": "acceptEdits", "allow": ["mcp__human-in-the-loop"] } }
+```
+Use `"bypassPermissions"` to skip command prompts too.
 
 ### Tool: `ask_user`
 
