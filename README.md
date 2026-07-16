@@ -54,9 +54,14 @@ The installer also allow-lists the MCP so `ask_user` runs without a permission p
 | ---- | ------ |
 | _(none)_ | Install for the current repo/folder. |
 | `--global` | Install for every project (personal skills dir). |
-| `--afk` | Also pre-approve file writes so hands-free edits never stop on a local prompt. For shell commands too, launch `copilot --allow-all-tools`. |
+| `--afk` | Pre-approve file writes so hands-free edits never stop on a local prompt. For shell commands too, launch `copilot --allow-all-tools`. |
+| `--hook --token hitl_xxx` | **Approve each tool on your phone.** Installs a Copilot CLI `permissionRequest` hook so every `create`/`edit`/`bash`/`powershell` is routed to Telegram for Approve/Deny before it runs. |
 
-> **Why `--afk`?** The MCP can only relay questions the agent chooses to send — it can't intercept Copilot CLI's own permission prompts for built-in tools like `create`/`edit`. `--afk` pre-approves those for the folder so an away-from-keyboard session doesn't silently block.
+> **`--afk` vs `--hook` — two ways to stay unblocked while AFK.** The MCP relays only questions the agent *chooses* to send; it can't intercept Copilot CLI's own permission prompts for built-in tools like `create`/`edit`. So either:
+> - **`--afk`** — pre-approve those tools for the folder (trust everything, never asked), or
+> - **`--hook`** — route each one to Telegram for Approve/Deny (stay in control, approve per action).
+>
+> `--hook` needs your MCP token (from the dashboard): `npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --hook --token hitl_xxx`. Currently Copilot CLI only.
 
 ### 2. Create an account
 
