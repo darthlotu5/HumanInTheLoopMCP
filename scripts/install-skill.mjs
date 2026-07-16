@@ -5,6 +5,7 @@
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot            # this repo/folder
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --global   # all projects
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --afk      # also pre-approve file writes
+//   npx github:darthlotu5/HumanInTheLoopMCP --ai copilot --hook --token hitl_xxx  # approve each tool on Telegram
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai claude
 //   npx github:darthlotu5/HumanInTheLoopMCP --ai claude --global
 import { existsSync, mkdirSync, rmSync, cpSync, readFileSync, writeFileSync } from "node:fs";
@@ -25,6 +26,8 @@ function flagValue(name, short) {
 const ai = (flagValue("--ai", "-a") || args.find((a) => !a.startsWith("-")) || "copilot").toLowerCase();
 const global = hasFlag("--global", "-g");
 const afk = hasFlag("--afk"); // also pre-approve file writes so AFK work never blocks on a local prompt
+const hook = hasFlag("--hook"); // install the tool-approval hook (routes mutating tools to Telegram); Copilot CLI only
+const hookToken = flagValue("--token"); // MCP token to embed in the hook (else the hook reads ${HITL_TOKEN})
 const home = flagValue("--home") || homedir(); // --home overrides the home dir (used by tests)
 const cwd = process.cwd();
 
@@ -103,6 +106,26 @@ if (ai === "copilot") {
     }
     console.log("  For shell-command autonomy too, launch: copilot --allow-all-tools");
   }
+
+  // --hook: install the tool-approval hook so mutating tools ask you on Telegram before they run.
+  // This is the opposite of --afk: instead of pre-approving writes, every create/edit/command is
+  // routed to your phone for Approve/Deny (a Copilot CLI permissionRequest hook -> /hooks/approve).
+  if (hook) {
+    const hooksDir = global ? join(home, ".copilot", "hooks") : join(cwd, ".github", "hooks");
+    mkdirSync(hooksDir, { recursive: true });
+    const entry = {
+      type: "http",
+      url: "https://humanintheloop-mcp.azurewebsites.net/hooks/approve",
+      headers: { Authorization: hookToken ? `Bearer ${hookToken}` : "Bearer ${HITL_TOKEN}" },
+      matcher: "create|edit|bash|powershell",
+      timeoutSec: 300,
+    };
+    if (!hookToken) entry.allowedEnvVars = ["HITL_TOKEN"];
+    const hookPath = join(hooksDir, "hitl-approvals.json");
+    writeJson(hookPath, { version: 1, hooks: { permissionRequest: [entry] } });
+    console.log(`\u2713 --hook: installed tool-approval hook -> ${hookPath}`);
+    if (!hookToken) console.log("  Set HITL_TOKEN to your MCP token, then restart Copilot CLI.");
+  }
 } else if (ai === "claude") {
   const skillsDir = global ? join(home, ".claude", "skills") : join(cwd, ".claude", "skills");
   const dest = installSkill(skillsDir);
@@ -129,6 +152,7 @@ if (ai === "copilot") {
   if (changed) writeJson(settingsPath, cfg);
   console.log(`\u2713 Allow-listed mcp__human-in-the-loop in ${settingsPath}`);
   if (afk) console.log('  --afk: set permissions.defaultMode = "acceptEdits" (edits won\'t prompt)');
+  if (hook) console.log("  Note: --hook (per-tool Telegram approvals) is Copilot CLI only for now.");
 } else {
   console.error(`Unknown client "${ai}". Use: --ai copilot | claude`);
   process.exit(1);
